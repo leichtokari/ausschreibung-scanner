@@ -1,6 +1,8 @@
 streamlit
 pandas
 beautifulsoup4
-playwright
 requests
 openpyxl
+
+playwright==1.40.0
+playwright-stealth
