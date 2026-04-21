@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import asyncio
-from scraper import run_scraper
+from scraper_multi import run_scraper
 
 st.set_page_config(
     page_title="Ausschreibung Scanner",
