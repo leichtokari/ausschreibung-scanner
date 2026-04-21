@@ -1,7 +1,11 @@
 import re
 
-# All your keywords combined and normalized
-KEYWORDS = [
+###########################################
+# 1. Keywords — 3 layers
+###########################################
+
+# Layer 1 — your exact domain terms (highest weight)
+KEYWORDS_STRONG = [
     "gender mobility planning",
     "gender mainstreaming",
     "gender mainstreaming verkehrsplanung",
@@ -15,7 +19,6 @@ KEYWORDS = [
     "stadtentwicklung",
     "regionalplanung",
     "strukturwandel",
-    "kfz-verkehr",
     "ruhender verkehr",
     "parkraummanagement",
     "parkraumkonzept",
@@ -26,11 +29,6 @@ KEYWORDS = [
     "ladeinfrastruktur",
     "e-ladestationen",
     "mobilpunkte",
-    "p+r",
-    "b+r",
-    "k+r",
-    "öpnv",
-    "spnv",
     "haltestellenqualität",
     "radverkehr",
     "radwegenetz",
@@ -38,44 +36,96 @@ KEYWORDS = [
     "nahmobilität",
     "schulwegsicherung",
     "barrierefreiheit",
-    "güterverkehr",
-    "lkw-verkehr",
-    "verkehrsmodell",
-    "transport planning",
-    "mobility planning",
+    "verkehrsmodell"
+]
+
+# Layer 2 — broader German transport infrastructure terms
+KEYWORDS_GENERAL_DE = [
+    "verkehr",
+    "verkehrsplanung",
+    "verkehrsanlagen",
+    "verkehrsstudie",
+    "verkehrssysteme",
+    "verkehrsleitsystem",
+    "mobilität",
+    "öpnv",
+    "spnv",
+    "gutachten",
+    "studie",
+    "planungsleistung",
+    "ingenieurleistung",
+    "projektsteuerung",
+    "bauüberwachung",
+    "generalplanung",
+    "infrastruktur",
+    "straßenplanung"
+]
+
+# Layer 3 — EU/English domain terms
+KEYWORDS_GENERAL_EN = [
+    "transport",
+    "mobility",
+    "infrastructure",
+    "public transport",
     "urban planning",
-    "sustainable mobility",
-    "infrastructure planning",
-    "transport infrastructure",
+    "traffic planning",
+    "transport modeling",
+    "civil engineering",
     "consulting services",
     "planning services",
     "construction supervision"
 ]
 
+
+###########################################
+# Normalize text
+###########################################
 def normalize(text):
-    """Lowercase and remove accents for easier matching."""
     if not text:
         return ""
     text = text.lower()
-    replacements = {
+    repl = {
         "ä": "ae",
         "ö": "oe",
         "ü": "ue",
         "ß": "ss"
     }
-    for k, v in replacements.items():
-        text = text.replace(k, v)
+    for a, b in repl.items():
+        text = text.replace(a, b)
     return text
 
 
+###########################################
+# Smart scoring-based classifier
+###########################################
 def classify_tender(title, description=""):
-    """True if ANY keyword appears in title or description."""
-    text = normalize(title) + " " + normalize(description)
+    text = normalize(title + " " + description)
 
-    for kw in KEYWORDS:
-        kw_norm = normalize(kw)
-        if kw_norm in text:
-            return True
+    score = 0
 
-    return False
+    # Strong matches (your exact domain)
+    for kw in KEYWORDS_STRONG:
+        if normalize(kw) in text:
+            score += 50
 
+    # German general mobility/verkehr
+    for kw in KEYWORDS_GENERAL_DE:
+        if normalize(kw) in text:
+            score += 25
+
+    # English general
+    for kw in KEYWORDS_GENERAL_EN:
+        if normalize(kw) in text:
+            score += 15
+
+    # Reward multiple hits
+    score += text.count("verkehr") * 3
+    score += text.count("mobil") * 3
+    score += text.count("planung") * 3
+
+    # Reward description presence
+    if len(description) > 50:
+        score += 10
+
+    # Final decision
+    return score >= 40
